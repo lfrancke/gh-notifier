@@ -7,6 +7,7 @@ Type=simple
 ExecStart=/path/to/your/compiled/binary
 Environment="GITHUB_TOKEN=your_github_token"
 #Environment="RUST_LOG=debug"
+Environment="BROWSER=/usr/bin/firefox"
 Restart=on-failure
 
 [Install]
