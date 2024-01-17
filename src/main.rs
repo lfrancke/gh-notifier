@@ -8,6 +8,8 @@ use std::io::Write;
 use std::sync::mpsc;
 use std::{env, process::Command};
 use tokio::time::{sleep, Duration};
+use tracing::{debug, info, trace};
+use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
 const GITHUB_API: &str = "https://api.github.com/notifications";
 
@@ -77,6 +79,7 @@ impl Notifier {
 
     pub async fn start(&self) {
         let mut last_updated = read_last_updated();
+        info!("Notifier started. Last updated date: {}", last_updated);
 
         loop {
             let update_time = Utc::now();
@@ -129,6 +132,8 @@ impl Notifier {
     async fn handle_notification(&self, notification: Notification) {
         let (tx, rx) = mpsc::channel();
 
+        debug!("Notifying about '{}' ('{}')", notification.id, notification.subject.title);
+
         // Display the notification
         SystemNotification::new()
             .summary(&notification.repository.full_name)
@@ -159,6 +164,8 @@ impl Notifier {
         } else {
             subject.url
         };
+
+        trace!("Notify URL for '{}': {}", subject.title, url);
 
         let res = self
             .client
@@ -221,6 +228,12 @@ fn read_last_updated() -> DateTime<Utc> {
 
 #[tokio::main]
 async fn main() {
+    let subscriber = FmtSubscriber::builder()
+        .with_env_filter(EnvFilter::new("gh-notifier=trace,info"))
+        .finish();
+
+    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
+
     let token = env::var("GITHUB_TOKEN").expect("GITHUB_TOKEN not set");
     let notifier = Notifier::new(token);
     notifier.start().await;

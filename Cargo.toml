@@ -9,7 +9,9 @@ edition = "2021"
 chrono = "0.4.31"
 cap-directories = "3.0.0"
 cap-primitives = "3.0.0"
-reqwest = { version = "0.11", features = ["json"] }
-serde = { version = "1.0", features = ["derive"] }
+reqwest = { version = "0.11.23", features = ["json"] }
+serde = { version = "1.0.195", features = ["derive"] }
 tokio = { version = "1.35.1", features = ["rt", "rt-multi-thread", "macros"] }
-notify-rust = "4"
+tracing = "0.1.40"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+notify-rust = "4.10.0"

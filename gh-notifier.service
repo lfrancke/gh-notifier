@@ -6,6 +6,7 @@ After=network.target
 Type=simple
 ExecStart=/path/to/your/compiled/binary
 Environment="GITHUB_TOKEN=your_github_token"
+#Environment="RUST_LOG=debug"
 Restart=on-failure
 
 [Install]
