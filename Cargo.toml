@@ -4,12 +4,12 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-chrono = "0.4.31"
-cap-directories = "3.0.0"
-cap-primitives = "3.0.0"
-reqwest = { version = "0.12.9", features = ["json"] }
-serde = { version = "1.0.195", features = ["derive"] }
-tokio = { version = "1.35.1", features = ["rt", "rt-multi-thread", "macros"] }
-tracing = "0.1.40"
-tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
-notify-rust = "4.10.0"
+chrono = "0.4.39"
+cap-directories = "3.4.2"
+cap-primitives = "3.3.2"
+reqwest = { version = "0.12.12", features = ["json"] }
+serde = { version = "1.0.217", features = ["derive"] }
+tokio = { version = "1.43.0", features = ["rt", "rt-multi-thread", "macros"] }
+tracing = "0.1.41"
+tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
+notify-rust = "4.11.5"
