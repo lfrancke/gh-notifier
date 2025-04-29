@@ -8,7 +8,7 @@ use std::io::Write;
 use std::sync::mpsc;
 use std::{env, process::Command};
 use tokio::time::{sleep, Duration};
-use tracing::{debug, info, trace};
+use tracing::{debug, error, info, trace};
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
 const GITHUB_API: &str = "https://api.github.com/notifications";
@@ -104,7 +104,7 @@ impl Notifier {
                         handle.await.unwrap();
                     }
                 }
-                Err(e) => println!("Error fetching notifications: {}", e),
+                Err(e) => error!("Error fetching notifications: {}", e),
             }
 
             last_updated = update_time;
@@ -123,6 +123,7 @@ impl Notifier {
             .header("User-Agent", "request")
             .send()
             .await?
+            .error_for_status()?
             .json::<Vec<Notification>>()
             .await?;
 
