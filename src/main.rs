@@ -107,7 +107,10 @@ impl Notifier {
                         handle.await.unwrap();
                     }
                 }
-                Err(e) => error!("Error fetching notifications: {}", e),
+                Err(e) => {
+                    error!("Error fetching notifications: {}", e);
+                    report_error_chain(&e);
+                },
             }
 
             last_updated = update_time;
@@ -230,6 +233,15 @@ fn read_last_updated() -> DateTime<Utc> {
 
     Utc::now()
 }
+
+fn report_error_chain(e: &dyn std::error::Error) {
+    let mut current = Some(e);
+    while let Some(err) = current {
+        trace!("Error: {}", err);
+        current = err.source();
+    }
+}
+
 
 #[tokio::main]
 async fn main() {
