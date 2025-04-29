@@ -85,6 +85,7 @@ impl Notifier {
             let update_time = Utc::now();
             match self.fetch_github_notifications().await {
                 Ok(notifications) => {
+                    trace!("Fetched {} notifications", notifications.len());
                     let mut handles = Vec::new();
                     for notification in notifications {
                         let updated_at = DateTime::parse_from_rfc3339(&notification.updated_at)
@@ -97,6 +98,8 @@ impl Notifier {
                                 notifier_clone.handle_notification(notification).await
                             });
                             handles.push(handle)
+                        } else {
+                            trace!("Ignoring old notification {}", notification.id);
                         }
                     }
 
@@ -115,6 +118,7 @@ impl Notifier {
     }
 
     async fn fetch_github_notifications(&self) -> Result<Vec<Notification>, reqwest::Error> {
+        trace!("Fetching notifications now");
         let res = self
             .client
             .get(GITHUB_API)
@@ -230,7 +234,7 @@ fn read_last_updated() -> DateTime<Utc> {
 #[tokio::main]
 async fn main() {
     let subscriber = FmtSubscriber::builder()
-        .with_env_filter(EnvFilter::new("gh-notifier=trace,info"))
+        .with_env_filter(EnvFilter::new("gh_notifier=trace,info"))
         .finish();
 
     tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
