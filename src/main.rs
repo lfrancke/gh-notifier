@@ -63,7 +63,7 @@ struct Repository {
 #[derive(Serialize, Deserialize, Debug)]
 struct Subject {
     title: String,
-    url: String,
+    url: Option<String>,
     latest_comment_url: Option<String>,
     #[serde(rename = "type")]
     subject_type: String,
@@ -169,8 +169,10 @@ impl Notifier {
     async fn open_browser(&self, subject: Subject) {
         let url = if let Some(url) = subject.latest_comment_url {
             url
+        } else if let Some(url) = subject.url {
+            url
         } else {
-            subject.url
+            return;
         };
 
         trace!("Notify URL for '{}': {}", subject.title, url);
