@@ -84,7 +84,7 @@
 
             meta = with nixpkgs.lib; {
               description = "GitHub Notifications notifier for Linux";
-              homepage = "https://github.com/axelkar/gh-notifier";
+              homepage = "https://github.com/lfrancke/gh-notifier";
               license = licenses.asl20;
             };
           };
