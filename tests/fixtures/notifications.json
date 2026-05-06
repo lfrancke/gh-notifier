@@ -1,0 +1,92 @@
+[
+  {
+    "id": "1",
+    "unread": true,
+    "reason": "mention",
+    "updated_at": "2024-01-15T12:34:56Z",
+    "last_read_at": null,
+    "subject": {
+      "title": "Update broken link in docs",
+      "url": "https://api.github.com/repos/octocat/Hello-World/pulls/42",
+      "latest_comment_url": "https://api.github.com/repos/octocat/Hello-World/issues/comments/9001",
+      "type": "PullRequest"
+    },
+    "repository": {
+      "id": 1296269,
+      "name": "Hello-World",
+      "full_name": "octocat/Hello-World",
+      "owner": {
+        "login": "octocat",
+        "id": 1
+      }
+    },
+    "url": "https://api.github.com/notifications/threads/1",
+    "subscription_url": "https://api.github.com/notifications/threads/1/subscription"
+  },
+  {
+    "id": "2",
+    "unread": true,
+    "reason": "ci_activity",
+    "updated_at": "2024-01-15T13:34:56Z",
+    "last_read_at": null,
+    "subject": {
+      "title": "main workflow failed for main branch",
+      "url": null,
+      "latest_comment_url": null,
+      "type": "CheckSuite"
+    },
+    "repository": {
+      "id": 1296269,
+      "name": "Hello-World",
+      "full_name": "octocat/Hello-World",
+      "owner": {
+        "login": "octocat",
+        "id": 1
+      }
+    }
+  },
+  {
+    "id": "3",
+    "unread": true,
+    "reason": "review_requested",
+    "updated_at": "2024-01-15T14:00:00Z",
+    "last_read_at": null,
+    "subject": {
+      "title": "Refactor auth middleware",
+      "url": "https://api.github.com/repos/octocat/Spoon-Knife/pulls/7",
+      "latest_comment_url": null,
+      "type": "PullRequest"
+    },
+    "repository": {
+      "id": 1300192,
+      "name": "Spoon-Knife",
+      "full_name": "octocat/Spoon-Knife",
+      "owner": {
+        "login": "octocat",
+        "id": 1
+      }
+    }
+  },
+  {
+    "id": "4",
+    "unread": true,
+    "reason": "imaginary_future_reason_2030",
+    "updated_at": "2024-01-15T15:00:00Z",
+    "last_read_at": null,
+    "subject": {
+      "title": "This reason is not in the docs yet",
+      "url": "https://api.github.com/repos/octocat/Hello-World/issues/100",
+      "latest_comment_url": null,
+      "type": "Issue"
+    },
+    "repository": {
+      "id": 1296269,
+      "name": "Hello-World",
+      "full_name": "octocat/Hello-World",
+      "owner": {
+        "login": "octocat",
+        "id": 1
+      }
+    }
+  }
+]

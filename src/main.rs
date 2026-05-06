@@ -6,10 +6,11 @@ use notify_rust::Notification as SystemNotification;
 use reqwest::header::{HeaderValue, ACCEPT, AUTHORIZATION, IF_MODIFIED_SINCE, LAST_MODIFIED, USER_AGENT};
 use reqwest::{Client, StatusCode};
 use serde::{Deserialize, Serialize};
-use std::io::Write;
+use std::collections::HashMap;
 use std::env;
+use std::io::Write;
 use std::process::Command;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use tokio::time::{sleep, Duration};
 use tracing::{debug, error, info, trace, warn};
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
@@ -28,6 +29,7 @@ struct Notifier(Arc<NotifierInner>);
 struct NotifierInner {
     token: String,
     client: Client,
+    repo_to_daemon_id: Mutex<HashMap<String, u32>>,
 }
 
 // https://docs.github.com/en/rest/activity/notifications?apiVersion=2022-11-28#about-notification-reasons
@@ -91,6 +93,7 @@ impl Notifier {
         Notifier(Arc::new(NotifierInner {
             token,
             client: Client::new(),
+            repo_to_daemon_id: Mutex::new(HashMap::new()),
         }))
     }
 
@@ -198,31 +201,50 @@ impl Notifier {
             notification.id, notification.subject.title
         );
 
-        let summary = notification.repository.full_name;
+        let repo = notification.repository.full_name;
         let body = format!(
             "{} ({}/{:?})",
             notification.subject.title, notification.subject.subject_type, notification.reason
         );
         let subject = notification.subject;
+        let notif_id = notification.id;
 
-        let notif_id = notification.id.clone();
+        let prev_id = self
+            .0
+            .repo_to_daemon_id
+            .lock()
+            .ok()
+            .and_then(|m| m.get(&repo).copied());
+
+        let inner = self.0.clone();
+        let repo_for_log = repo.clone();
         let notif_id_for_log = notif_id.clone();
+
         let clicked = tokio::task::spawn_blocking(move || {
-            let handle = match SystemNotification::new()
-                .summary(&summary)
+            let mut builder = SystemNotification::new();
+            builder
+                .summary(&repo)
                 .appname("GitHub")
                 .body(&body)
                 .icon("github")
                 .action("default", "Open")
-                .action("open", "Open in browser")
-                .show()
-            {
+                .action("open", "Open in browser");
+            if let Some(id) = prev_id {
+                debug!("replacing previous notification {} for repo {}", id, repo);
+                builder.id(id);
+            }
+
+            let handle = match builder.show() {
                 Ok(h) => h,
                 Err(e) => {
                     error!("failed to show notification {}: {}", notif_id, e);
                     return false;
                 }
             };
+
+            if let Ok(mut map) = inner.repo_to_daemon_id.lock() {
+                map.insert(repo, handle.id());
+            }
 
             let mut clicked = false;
             handle.wait_for_action(|action| {
@@ -237,7 +259,10 @@ impl Notifier {
         .unwrap_or(false);
 
         if clicked {
-            info!("notification {} clicked, opening browser", notif_id_for_log);
+            info!(
+                "notification {} ({}) clicked, opening browser",
+                notif_id_for_log, repo_for_log
+            );
             if let Err(e) = self.open_browser(&subject).await {
                 error!("failed to open browser for {}: {:#}", notif_id_for_log, e);
             }
@@ -330,13 +355,111 @@ async fn main() {
     tracing::subscriber::set_global_default(subscriber)
         .expect("setting default tracing subscriber failed");
 
-    let token = match env::var("GITHUB_TOKEN") {
-        Ok(t) if !t.is_empty() => t,
-        _ => {
-            error!("GITHUB_TOKEN environment variable is not set");
+    let token = match resolve_token() {
+        Ok(t) => t,
+        Err(e) => {
+            error!("could not obtain a GitHub token: {:#}", e);
             std::process::exit(1);
         }
     };
 
     Notifier::new(token).run().await;
+}
+
+fn resolve_token() -> Result<String> {
+    if let Ok(t) = env::var("GITHUB_TOKEN") {
+        if !t.is_empty() {
+            return Ok(t);
+        }
+    }
+
+    debug!("GITHUB_TOKEN not set; falling back to `gh auth token`");
+    let output = Command::new("gh")
+        .args(["auth", "token"])
+        .output()
+        .context("executing `gh auth token` (install gh or set GITHUB_TOKEN)")?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(anyhow!("`gh auth token` failed: {}", stderr.trim()));
+    }
+
+    let token = String::from_utf8(output.stdout)
+        .context("`gh auth token` returned non-utf8 output")?
+        .trim()
+        .to_owned();
+
+    if token.is_empty() {
+        return Err(anyhow!("`gh auth token` returned an empty token"));
+    }
+
+    info!("using token from `gh auth token`");
+    Ok(token)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const FIXTURE: &str = include_str!("../tests/fixtures/notifications.json");
+
+    #[test]
+    fn parses_real_world_response_shape() {
+        let parsed: Vec<Notification> = serde_json::from_str(FIXTURE).expect("parse");
+        assert_eq!(parsed.len(), 4);
+        assert_eq!(parsed[0].repository.full_name, "octocat/Hello-World");
+        assert_eq!(parsed[0].subject.subject_type, "PullRequest");
+    }
+
+    #[test]
+    fn unknown_reason_falls_through_to_other() {
+        let parsed: Vec<Notification> = serde_json::from_str(FIXTURE).unwrap();
+        assert!(matches!(parsed[3].reason, Reason::Other));
+    }
+
+    #[test]
+    fn null_subject_urls_become_none() {
+        let parsed: Vec<Notification> = serde_json::from_str(FIXTURE).unwrap();
+        assert!(parsed[1].subject.url.is_none());
+        assert!(parsed[1].subject.latest_comment_url.is_none());
+    }
+
+    #[test]
+    fn updated_at_parses_to_utc_datetime() {
+        let parsed: Vec<Notification> = serde_json::from_str(FIXTURE).unwrap();
+        assert_eq!(
+            parsed[0].updated_at.to_rfc3339(),
+            "2024-01-15T12:34:56+00:00"
+        );
+    }
+
+    #[test]
+    fn every_documented_reason_has_a_variant() {
+        // From https://docs.github.com/en/rest/activity/notifications
+        for reason in [
+            "approval",
+            "assign",
+            "author",
+            "comment",
+            "ci_activity",
+            "invitation",
+            "manual",
+            "mention",
+            "review_requested",
+            "security_advisory_credit",
+            "security_alert",
+            "state_change",
+            "subscribed",
+            "team_mention",
+        ] {
+            let json = format!("\"{}\"", reason);
+            let r: Reason = serde_json::from_str(&json)
+                .unwrap_or_else(|e| panic!("reason {} failed: {}", reason, e));
+            assert!(
+                !matches!(r, Reason::Other),
+                "documented reason {} should not deserialize to Other",
+                reason
+            );
+        }
+    }
 }
