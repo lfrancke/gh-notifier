@@ -205,24 +205,28 @@ impl Notifier {
         );
         let subject = notification.subject;
 
+        let notif_id = notification.id.clone();
+        let notif_id_for_log = notif_id.clone();
         let clicked = tokio::task::spawn_blocking(move || {
             let handle = match SystemNotification::new()
                 .summary(&summary)
                 .appname("GitHub")
                 .body(&body)
+                .icon("github")
                 .action("default", "Open")
                 .action("open", "Open in browser")
                 .show()
             {
                 Ok(h) => h,
                 Err(e) => {
-                    error!("failed to show notification: {}", e);
+                    error!("failed to show notification {}: {}", notif_id, e);
                     return false;
                 }
             };
 
             let mut clicked = false;
             handle.wait_for_action(|action| {
+                debug!("notification {} action received: {:?}", notif_id, action);
                 if action == "default" || action == "open" {
                     clicked = true;
                 }
@@ -233,9 +237,12 @@ impl Notifier {
         .unwrap_or(false);
 
         if clicked {
+            info!("notification {} clicked, opening browser", notif_id_for_log);
             if let Err(e) = self.open_browser(&subject).await {
-                error!("failed to open browser: {:#}", e);
+                error!("failed to open browser for {}: {:#}", notif_id_for_log, e);
             }
+        } else {
+            debug!("notification {} dismissed without action", notif_id_for_log);
         }
     }
 
