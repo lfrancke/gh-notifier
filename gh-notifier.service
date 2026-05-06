@@ -1,14 +1,15 @@
 [Unit]
 Description=GitHub Notifier Service
-After=network.target
+After=graphical-session.target
+PartOf=graphical-session.target
 
 [Service]
 Type=simple
 ExecStart=/path/to/your/compiled/binary
 Environment="GITHUB_TOKEN=your_github_token"
-#Environment="RUST_LOG=debug"
-Environment="BROWSER=/usr/bin/firefox"
+#Environment="RUST_LOG=gh_notifier=debug"
 Restart=on-failure
+RestartSec=10s
 
 [Install]
-WantedBy=default.target
+WantedBy=graphical-session.target
