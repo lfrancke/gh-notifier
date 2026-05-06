@@ -1,0 +1,46 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev pkg-config
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build release binary
+        run: cargo build --release
+
+      - name: Stage release artifacts
+        run: |
+          set -eu
+          NAME="gh-notifier-${GITHUB_REF_NAME}-x86_64-linux"
+          mkdir -p "dist/${NAME}"
+          cp target/release/gh-notifier "dist/${NAME}/"
+          cp gh-notifier.service LICENSE README.md "dist/${NAME}/"
+          tar -C dist -czf "${NAME}.tar.gz" "${NAME}"
+          sha256sum "${NAME}.tar.gz" > "${NAME}.tar.gz.sha256"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            gh-notifier-*.tar.gz
+            gh-notifier-*.tar.gz.sha256
+          generate_release_notes: true
+          fail_on_unmatched_files: true

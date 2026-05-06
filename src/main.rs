@@ -3,7 +3,9 @@ use cap_directories::{ambient_authority, ProjectDirs};
 use cap_primitives::fs::OpenOptions;
 use chrono::{DateTime, Utc};
 use notify_rust::Notification as SystemNotification;
-use reqwest::header::{HeaderValue, ACCEPT, AUTHORIZATION, IF_MODIFIED_SINCE, LAST_MODIFIED, USER_AGENT};
+use reqwest::header::{
+    HeaderValue, ACCEPT, AUTHORIZATION, IF_MODIFIED_SINCE, LAST_MODIFIED, USER_AGENT,
+};
 use reqwest::{Client, StatusCode};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -103,7 +105,10 @@ impl Notifier {
         info!("notifier started; last seen update: {}", last_updated);
 
         loop {
-            let interval = match self.fetch_github_notifications(last_modified.as_deref()).await {
+            let interval = match self
+                .fetch_github_notifications(last_modified.as_deref())
+                .await
+            {
                 Ok(result) => {
                     trace!("fetched {} notifications", result.notifications.len());
                     last_modified = result.last_modified;
@@ -349,8 +354,8 @@ fn read_last_updated() -> DateTime<Utc> {
 
 #[tokio::main]
 async fn main() {
-    let filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new("gh_notifier=info"));
+    let filter =
+        EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("gh_notifier=info"));
     let subscriber = FmtSubscriber::builder().with_env_filter(filter).finish();
     tracing::subscriber::set_global_default(subscriber)
         .expect("setting default tracing subscriber failed");
