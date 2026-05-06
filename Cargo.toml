@@ -15,7 +15,7 @@ cap-directories = "4.0"
 cap-primitives = "4.0"
 chrono = { version = "0.4", features = ["serde"] }
 notify-rust = "4.17"
-reqwest = { version = "0.12", features = ["json"] }
+reqwest = { version = "0.13", features = ["json"] }
 serde = { version = "1.0", features = ["derive"] }
 tokio = { version = "1.52", features = ["rt", "rt-multi-thread", "macros", "sync", "time"] }
 tracing = "0.1"
